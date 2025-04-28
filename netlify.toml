@@ -1,0 +1,101 @@
+# netlify.toml - クチトル用の完全な設定ファイル
+# このファイルはNetlifyのビルド設定、関数設定、ルーティング、アクセス制御を定義します
+
+# ビルド設定
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+# 開発環境設定
+[dev]
+  command = "npm run dev"
+  port = 8888
+  targetPort = 5173
+  publish = "dist"
+  framework = "#custom"
+  functionsPort = 9999
+
+# Netlify Functions 全般設定
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["axios", "cheerio", "p-limit"]
+  included_files = ["netlify/functions/**/*.js", "netlify/functions/**/*.ts"]
+
+# webscraper 関数の特別設定
+[[functions]]
+  name = "webscraper"
+  included_files = []
+  external_node_modules = ["axios", "cheerio", "p-limit"]
+  timeout = 26  # Netlify Proプランでは最大26秒（通常プランは10秒）
+  
+# kuchitoru-service 関数の特別設定
+[[functions]]
+  name = "kuchitoru-service"
+  included_files = []
+  external_node_modules = ["@supabase/supabase-js"]
+  timeout = 26
+  
+# API関連のCORSヘッダー
+[[headers]]
+  for = "/api/*"
+    [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+    Cache-Control = "no-cache"
+
+# Netlify Functions用のCORS対応
+[[headers]]
+  for = "/.netlify/functions/*"
+    [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+    Cache-Control = "no-cache"
+
+# インタビューページ用のキャッシュ無効化設定
+[[headers]]
+  for = "/interview/*"
+    [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+# 静的アセット用キャッシュ設定
+[[headers]]
+  for = "/assets/*"
+    [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# リダイレクト設定
+# APIリクエストをNetlify Functionsにリダイレクト
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+
+# SPAルーティング対応のためのフォールバック設定
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# プラグイン設定
+[[plugins]]
+  package = "@netlify/plugin-functions-core"
+
+# 環境変数（本番環境では使用しない - Netlifyダッシュボードで設定すること）
+# [build.environment]
+#   NODE_ENV = "production"
+
+# ビルドコンテキスト別の設定
+[context.production]
+  command = "npm run build"
+
+[context.deploy-preview]
+  command = "npm run build:preview"
+
+[context.branch-deploy]
+  command = "npm run build:branch"

@@ -1,0 +1,61 @@
+/* index.css または globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* デフォルトのライトモードの値を設定 (HSL形式) */
+    /* ライトモードのみを採用し、一部の色を調整 */
+    --background: 0 0% 100%; /* 白 */
+    --foreground: 222.2 84% 4.9%; /* ほぼ黒 */
+
+    --card: 0 0% 100%; /* 白 */
+    --card-foreground: 222.2 84% 4.9%; /* ほぼ黒 */
+
+    --popover: 0 0% 100%; /* 白 */
+    --popover-foreground: 222.2 84% 4.9%; /* ほぼ黒 */
+
+    --primary: 222.2 47.4% 11.2%; /* ダークブルー */
+    --primary-foreground: 210 40% 98%; /* ほぼ白 */
+
+    --secondary: 210 40% 96.1%; /* 非常に明るいブルーグレー */
+    --secondary-foreground: 222.2 47.4% 11.2%; /* ダークブルー */
+
+    --muted: 210 40% 96.1%; /* 非常に明るいブルーグレー */
+    /* --muted-foreground: 215.4 16.3% 46.9%; /* 元の灰色 */
+    --muted-foreground: 215.4 16.3% 35%; /* 修正: 読みやすくするために少し暗くした灰色 (#475569) */
+
+    --accent: 210 40% 96.1%; /* 非常に明るいブルーグレー */
+    --accent-foreground: 222.2 47.4% 11.2%; /* ダークブルー */
+
+    --destructive: 0 84.2% 60.2%; /* 明るい赤 */
+    --destructive-foreground: 210 40% 98%; /* ほぼ白 */
+
+    --border: 214.3 31.8% 91.4%; /* 非常に明るい灰色 */
+    --input: 214.3 31.8% 91.4%; /* 非常に明るい灰色 */
+    /* --ring: 222.2 84% 4.9%; /* 元のフォーカスリングの色 (ほぼ黒) */
+    --ring: 222.2 47.4% 11.2%; /* 修正: フォーカスリングの色を primary と同じダークブルーに変更 */
+
+    --radius: 0.5rem; /* 角丸の基準値 */
+  }
+
+  /* .dark セレクタとその内部を削除し、ダークモードの定義を除去 */
+  /*
+  .dark {
+    ... ダークモードの定義があった箇所 ...
+  }
+  */
+}
+
+@layer base {
+  * {
+    /* デフォルトのボーダーカラーをCSS変数を使用して設定 */
+    border-color: hsl(var(--border));
+  }
+  body {
+    @apply bg-background text-foreground; /* body の背景色と文字色を設定 */
+    /* スムーズなフォントレンダリングのための設定 (任意) */
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}

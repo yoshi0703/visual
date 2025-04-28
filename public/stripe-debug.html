@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stripe決済データ確認ツール</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+  <div class="container mx-auto px-4 py-10 max-w-4xl">
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <h1 class="text-2xl font-bold text-center mb-6">Stripeデータ確認・修正ツール</h1>
+      
+      <div class="mb-6">
+        <h2 class="text-lg font-semibold mb-2">データチェック</h2>
+        <p class="text-gray-600 mb-4">ユーザーIDまたはストアIDを入力して、Stripeの決済データを確認できます。</p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 mb-4">
+          <div class="flex-1">
+            <label for="userId" class="block text-sm font-medium text-gray-700 mb-1">ユーザーID</label>
+            <input type="text" id="userId" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="例: 123e4567-e89b-12d3-a456-426614174000">
+          </div>
+          <div class="flex-1">
+            <label for="storeId" class="block text-sm font-medium text-gray-700 mb-1">ストアID</label>
+            <input type="text" id="storeId" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="例: 123e4567-e89b-12d3-a456-426614174000">
+          </div>
+        </div>
+        
+        <button id="checkButton" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded">
+          データを確認する
+        </button>
+      </div>
+      
+      <div id="dataFix" class="mb-6 hidden">
+        <h2 class="text-lg font-semibold mb-2">データ修正</h2>
+        <p class="text-gray-600 mb-4">問題が見つかった場合、以下のボタンで修正できます。</p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 mb-4">
+          <div class="flex-1">
+            <label for="planId" class="block text-sm font-medium text-gray-700 mb-1">プランID</label>
+            <input type="text" id="planId" class="w-full px-3 py-2 border border-gray-300 rounded-md" value="price_1RE8QDIoXiM5069uMN8Ke2TX" placeholder="例: price_1RE8QDIoXiM5069uMN8Ke2TX">
+            <p class="text-xs text-gray-500 mt-1">デフォルト: クチトルベーシック (price_1RE8QDIoXiM5069uMN8Ke2TX)</p>
+          </div>
+        </div>
+        
+        <button id="fixButton" class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded">
+          ストアのプラン情報を修正する
+        </button>
+      </div>
+      
+      <div id="result" class="mt-8 hidden">
+        <h2 class="text-lg font-semibold mb-2">結果</h2>
+        <pre id="resultContent" class="bg-gray-100 p-4 rounded-lg text-sm overflow-x-auto"></pre>
+      </div>
+      
+      <div id="loading" class="hidden mt-4 flex justify-center">
+        <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow-lg p-6">
+      <h2 class="text-lg font-semibold mb-2">使用方法</h2>
+      <ol class="list-decimal pl-5 space-y-2 text-gray-700">
+        <li>ユーザーIDまたはストアIDを入力して「データを確認する」をクリック</li>
+        <li>データが正常に表示されたら、プラン情報と決済情報を確認</li>
+        <li>プランIDが設定されていない場合や、決済情報に問題がある場合は「データ修正」セクションが表示されます</li>
+        <li>必要に応じてプランIDを調整し、「ストアのプラン情報を修正する」をクリック</li>
+        <li>修正後、ダッシュボードにアクセスできるか確認してください</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const checkButton = document.getElementById('checkButton');
+      const fixButton = document.getElementById('fixButton');
+      const resultDiv = document.getElementById('result');
+      const resultContent = document.getElementById('resultContent');
+      const dataFixDiv = document.getElementById('dataFix');
+      const loadingDiv = document.getElementById('loading');
+      let currentStoreId = null;
+
+      checkButton.addEventListener('click', async () => {
+        const userId = document.getElementById('userId').value.trim();
+        const storeId = document.getElementById('storeId').value.trim();
+        
+        if (!userId && !storeId) {
+          alert('ユーザーIDまたはストアIDを入力してください。');
+          return;
+        }
+        
+        loadingDiv.classList.remove('hidden');
+        resultDiv.classList.add('hidden');
+        dataFixDiv.classList.add('hidden');
+        
+        try {
+          const response = await fetch('/.netlify/functions/check-stripe-data', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId,
+              storeId
+            })
+          });
+          
+          const data = await response.json();
+          
+          resultContent.textContent = JSON.stringify(data, null, 2);
+          resultDiv.classList.remove('hidden');
+          
+          // If store data is found, show fix section if needed
+          if (data.success && data.data && data.data.store) {
+            currentStoreId = data.data.store.id;
+            
+            // Check if fix is needed - e.g., no plan_id or subscription data problems
+            const needsFix = !data.data.store.plan_id || 
+                           data.data.store.subscription_status !== 'active' ||
+                           !data.data.subscription;
+                           
+            if (needsFix) {
+              dataFixDiv.classList.remove('hidden');
+            }
+          }
+        } catch (error) {
+          resultContent.textContent = `エラー: ${error.message}`;
+          resultDiv.classList.remove('hidden');
+        } finally {
+          loadingDiv.classList.add('hidden');
+        }
+      });
+      
+      fixButton.addEventListener('click', async () => {
+        if (!currentStoreId) {
+          alert('先にデータを確認してください。');
+          return;
+        }
+        
+        const planId = document.getElementById('planId').value.trim();
+        
+        if (!planId) {
+          alert('プランIDを入力してください。');
+          return;
+        }
+        
+        if (!confirm('本当にデータを修正しますか？この操作は元に戻せません。')) {
+          return;
+        }
+        
+        loadingDiv.classList.remove('hidden');
+        
+        try {
+          const response = await fetch('/.netlify/functions/check-stripe-data', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              storeId: currentStoreId,
+              planId,
+              action: 'fix'
+            })
+          });
+          
+          const data = await response.json();
+          
+          resultContent.textContent = JSON.stringify(data, null, 2);
+          resultDiv.classList.remove('hidden');
+          
+          if (data.success) {
+            alert('データを修正しました。ダッシュボードへのアクセスをお試しください。');
+          }
+        } catch (error) {
+          resultContent.textContent = `エラー: ${error.message}`;
+          resultDiv.classList.remove('hidden');
+        } finally {
+          loadingDiv.classList.add('hidden');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
